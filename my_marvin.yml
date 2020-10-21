@@ -1,0 +1,138 @@
+jenkins:
+  agentProtocols:
+  - "JNLP4-connect"
+  disableRememberMe: false
+  labelAtoms:
+  - name: "master"
+  markupFormatter: "plainText"
+  mode: NORMAL
+  myViewsTabBar: "standard"
+  numExecutors: 2
+  primaryView:
+    all:
+      name: "all"
+  projectNamingStrategy: "standard"
+  quietPeriod: 5
+  scmCheckoutRetryCount: 0
+
+  # Global Configuration
+  systemMessage: "Welcome to the Chocolatine-Powered Marvin Jenkins Instance."
+  remotingSecurity:
+    enabled: true
+  # Users
+  securityRealm:
+    local:
+      allowsSignup: false
+      enableCaptcha: false
+      users:
+      - id: "chocolateen"
+        name: "Hugo"
+        password: ${USER_CHOCOLATEEN_PASSWORD}
+      - id: "vaugie_g"
+        name: "Garance"
+        password: ${USER_VAUGIE_G_PASSWORD}
+      - id: "i_dont_know"
+        name: "Jeremy"
+        password: ${USER_I_DONT_KNOW_PASSWORD}
+      - id: "nasso"
+        name: "Nassim"
+        password: ${USER_NASSO_PASSWORD}
+  # Authorization strategy
+  authorizationStrategy:
+    roleBased:
+      roles:
+        global:
+        - assignments:
+            - "chocolateen"
+          name: "admin"
+          description: "Marvin master"
+          pattern: ".*"
+          permissions:
+            - "Overall/Administer"
+        - assignments:
+            - "i_dont_know"
+          name: "ape"
+          description: "Pedagogical team member"
+          pattern: ".*"
+          permissions:
+            - "Job/Build"
+            - "Job/Read"
+            - "Job/Workspace"
+            - "Overall/Read"
+        - assignments:
+            - "vaugie_g"
+          name: "gorilla"
+          description: "Group Obsessively Researching Innovation Linked to Learning and Accomplishment"
+          pattern: ".*"
+          permissions:
+            - "Job/Build"
+            - "Job/Read"
+            - "Job/Workspace"
+            - "Overall/Read"
+            - "Job/Create"
+            - "Job/Configure"
+            - "Job/Delete"
+            - "Job/Move"
+            - "Job/Cancel"
+        - assignments:
+            - "nasso"
+          name: "assist"
+          description: "Assistant"
+          pattern: ".*"
+          permissions:
+            - "Job/Read"
+            - "Job/Workspace"
+            - "Overall/Read"
+# Folder & Jobs
+
+jobs:
+  - script: >
+      folder('Tools') {
+        displayName('Tools')
+        description('Folder for miscellaneous tools.')
+      }
+
+      freeStyleJob('Tools/clone-repository') {
+        parameters {
+          stringParam('GIT_REPOSITORY_URL', '', 'Git URL of the repository to clone')
+        }
+        steps {
+          shell('git clone ${GIT_REPOSITORY_URL}')
+        }
+        wrappers {
+          preBuildCleanup()
+        }
+      }
+
+      freeStyleJob('Tools/SEED') {
+        parameters {
+          stringParam('GITHUB_NAME', '', 'GitHub repository owner/repo_name (e.g.: "EpitechIT31000/chocolatine")')
+          stringParam('DISPLAY_NAME', '', 'Display name for the job')
+        }
+        steps {
+          dsl {
+            text('''freeStyleJob(DISPLAY_NAME) {
+              triggers {
+                scm('@minutes')
+              }
+              scm {
+                git {
+                  remote {
+                    github(GITHUB_NAME)
+                  }
+                  branches('master')
+                }
+              }
+              wrappers {
+                preBuildCleanup()
+              }
+              steps {
+                shell('make fclean')
+                shell('make')
+                shell('make test')
+                shell('make clean')
+              }
+            }''')
+          }
+        }
+      }
